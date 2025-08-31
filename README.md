@@ -83,5 +83,7 @@ README.md        # this file
 - Packaged `.exe` for Windows or `.app` for macOS
 - Mini Tkinter GUI
 
+## 📜 License
+See [LICENSE.md](LICENSE.md) for details.
 ---
 Made by Robert Mezian for local tinkering and learning.

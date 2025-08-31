@@ -1,0 +1,3 @@
+Linux is a family of open-source operating systems based on the Linux kernel.
+It is known for stability, security, and powering servers, desktops, and embedded systems.
+Distributions like Ubuntu, Fedora, and Arch Linux provide different user experiences.

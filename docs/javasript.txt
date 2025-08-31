@@ -1,0 +1,1 @@
+JavaScript is mainly used for building websites and front-end interactivity.

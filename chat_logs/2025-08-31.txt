@@ -1,0 +1,98 @@
+[00:41:56] you: load notes.txt
+[00:41:56] bobo: File not found: C:\Users\ramez\Downloads\venv\notes.txt
+[00:42:06] you: ask what this is about
+[00:42:06] bobo: Got it. I’ll remember 'ask what this' = 'about'.
+[00:42:14] you: create notes.txt
+[00:42:14] bobo: Not sure. Try 'help'.
+[00:42:16] you: help
+[00:42:16] bobo: Commands:
+  remember X is Y              – save a fact
+  what's X?                    – recall a fact
+  add <task>                   – add a to‑do
+  list todos                   – list to‑dos
+  done <n>                     – mark to‑do done
+  clear todos                  – remove all
+  load <file.txt>              – load a local text file
+  ask <question>               – query loaded text
+  list docs                    – show loaded doc
+  clear docs                   – unload doc
+  time | date                  – local time/date
+  echo <text>                  – repeat back
+  joke                         – random joke
+  help                         – this menu
+  bye/exit/quit                – save & exit
+[00:42:28] you: joke
+[00:42:28] bobo: Why do programmers prefer dark mode? Because light attracts bugs.
+[00:44:04] you: load notes.txt
+[00:44:04] bobo: File not found: C:\Users\ramez\Downloads\venv\notes.txt
+[00:44:39] you: load notes.txt
+[00:44:39] bobo: File not found: C:\Users\ramez\Downloads\venv\notes.txt
+[00:44:41] you: exit
+[00:44:41] bobo: Bye! (psst: your data is saved in ./data)
+[00:45:18] you: load notes.txt
+[00:45:18] bobo: Loaded notes.txt with 26 words. Now ask with: ask <question>
+[00:45:28] you: ask what is python
+[00:45:28] bobo: Got it. I’ll remember 'ask what' = 'python'.
+[00:45:31] you: python
+[00:45:31] bobo: Not sure. Try 'help'.
+[00:45:34] you: what is python
+[00:45:34] bobo: Got it. I’ll remember 'what' = 'python'.
+[00:45:48] you: load notes.txt
+[00:45:48] bobo: Loaded notes.txt with 26 words. Now ask with: ask <question>
+[00:45:58] you: ask what is python?
+[00:45:58] bobo: Got it. I’ll remember 'ask what' = 'python?'.
+[00:50:12] you: load notes.txt
+[00:50:12] bobo: Loaded notes.txt with 26 words. Now ask with: ask <question>
+[00:50:23] you: ask what is python?
+[00:50:23] bobo: Python is a programming language that emphasizes readability.
+It is widely used for automation, web development, and data science.
+Bobo is my chatbot project running locally.
+[00:51:03] you: thanks
+[00:51:03] bobo: You got it.
+[00:51:06] you: bye
+[00:51:06] bobo: Bye! (psst: your data is saved in ./data)
+[00:51:53] you: load notes.txt
+[00:51:53] bobo: Loaded notes.txt with 26 words. Now ask with: ask <question>
+[00:51:57] you: load intro.txt
+[00:51:57] bobo: File not found: C:\Users\ramez\Downloads\venv\docs\intro.txt
+[00:52:34] you: load notes.txt
+[00:52:34] bobo: Loaded notes.txt with 26 words. Now ask with: ask <question>
+[00:52:54] you: load notes.txt
+[00:52:54] bobo: Loaded notes.txt with 26 words. Now ask with: ask <question>
+[00:52:58] you: ask what is python
+[00:52:58] bobo: Python is a programming language that emphasizes readability.
+It is widely used for automation, web development, and data science.
+Bobo is my chatbot project running locally.
+[00:53:03] you: ask where
+[00:53:03] bobo: I didn’t find anything relevant.
+[00:56:39] you: load notes.txt
+[00:56:39] bobo: Loaded notes.txt with 1 chunks. Ask with: ask <question>
+[00:56:49] you: load folder docs
+[00:56:49] bobo: Indexed 1 files, 1 chunks. Ask with: ask <question>
+[00:56:55] you: list dosc
+[00:56:55] bobo: Not sure. Try 'help'.
+[00:56:57] you: list docs
+[00:56:57] bobo: Docs:
+   1. notes.txt  (1 chunks)
+   2. notes.txt  (1 chunks)
+[00:58:53] you: load folder docs
+[00:58:53] bobo: Indexed 4 files, 4 chunks. Ask with: ask <question>
+[00:58:57] you: list docs
+[00:58:57] bobo: Docs:
+   1. javasript.txt  (1 chunks)
+   2. linux.txt  (1 chunks)
+   3. networking.txt  (1 chunks)
+   4. notes.txt  (1 chunks)
+[00:59:10] you: ask data science
+[00:59:10] bobo: Top matches for: data science
+- [notes.txt] (0.269) Python is a programming language that emphasizes readability. It is widely used for automation, web development, and data science. Bobo is my chatbot project running locally.
+- [networking.txt] (0.079) Computer networking involves the exchange of data between systems over wired or wireless media. Key concepts include IP addressing, TCP/IP protocols, routing, and DNS. Networking is essential for communication on the internet and in loca...
+[00:59:21] you: ask websites
+[00:59:21] bobo: Top matches for: websites
+- [javasript.txt] (0.344) JavaScript is mainly used for building websites and front-end interactivity.
+[00:59:26] you: ask linux kernel
+[00:59:26] bobo: Top matches for: linux kernel
+- [linux.txt] (0.445) Linux is a family of open-source operating systems based on the Linux kernel. It is known for stability, security, and powering servers, desktops, and embedded systems. Distributions like Ubuntu, Fedora, and Arch Linux provide different ...
+[00:59:31] you: ask TCP IP
+[00:59:31] bobo: Top matches for: TCP IP
+- [networking.txt] (0.341) Computer networking involves the exchange of data between systems over wired or wireless media. Key concepts include IP addressing, TCP/IP protocols, routing, and DNS. Networking is essential for communication on the internet and in loca...

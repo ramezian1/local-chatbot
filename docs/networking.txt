@@ -1,0 +1,3 @@
+Computer networking involves the exchange of data between systems over wired or wireless media.
+Key concepts include IP addressing, TCP/IP protocols, routing, and DNS.
+Networking is essential for communication on the internet and in local area networks.

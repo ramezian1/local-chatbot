@@ -1,0 +1,3 @@
+Python is a programming language that emphasizes readability.
+It is widely used for automation, web development, and data science.
+Bobo is my chatbot project running locally.

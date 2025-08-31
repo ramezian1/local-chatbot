@@ -210,7 +210,7 @@ class Bot:
             (re.compile(r"^clear\s+docs$", re.I), self._intent_doc_clear),
 
             # Core features
-            (re.compile(r"^(?:remember that )?(?P<k>[\w\s-]{1,60})\s+(?:is|=)\s+(?P<v>.+)$", re.I), self._intent_remember),
+	    (re.compile(r"^remember (?:that )?(?P<k>[\w\s-]{1,60})\s+(?:is|=)\s+(?P<v>.+)$", re.I), self._intent_remember),
             (re.compile(r"^(?:what is|what's)\s+(?P<k>[\w\s-]{1,60})\??$", re.I), self._intent_recall),
             (re.compile(r"^(?:add|todo)\s+(?P<item>.+)$", re.I), self._intent_todo_add),
             (re.compile(r"^(?:list|show)\s+(?:todos?|tasks?)$", re.I), self._intent_todo_list),

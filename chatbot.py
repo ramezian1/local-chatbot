@@ -1,45 +1,69 @@
 #!/usr/bin/env python3
 """
-Local Chatbot with Multi‑File Q&A (TF‑IDF)
------------------------------------------
-New features:
-- Load one file:   `load <file>` (checks CWD, then script folder, then ./docs)
-- Load a folder:   `load folder <path>` (indexes all .txt/.md/.log)
-- Ask questions:   `ask <question>` (cosine similarity over TF‑IDF chunk vectors)
-- Manage:          `list docs`, `clear docs`
+Local Chatbot with Multi-File Q&A (TF-IDF) + SQLite Memory + Colored Output
+---------------------------------------------------------------------------
+Commands:
+  load <file>                  – add a .txt/.md/.log (./, script dir, or ./docs)
+  load folder <path>           – add all .txt/.md/.log in a folder
+  list docs                    – show loaded files
+  clear docs                   – remove all indexed files
+  ask <question>               – search with TF-IDF + cosine
+
+  remember X is Y              – save a fact
+  what's X?                    – recall a fact
+  /remember X: Y               – slash alias to remember
+  /recall X                    – slash alias to recall
+  /memkeys                     – list saved memory keys
+  /memsearch <text>            – search keys/values in memory
+  /forget <key>                – delete a saved memory
+
+  add <task>                   – add a to-do
+  list todos                   – list to-dos
+  done <n>                     – mark to-do done
+  clear todos                  – remove all
+
+  time | date                  – local time/date
+  echo <text>                  – repeat back
+  joke                         – random joke
+  help                         – this menu
+  bye/exit/quit                – save & exit
+
+Tips:
+  Run with more results:  python chatbot.py --top-k 5
+  Disable colors:         python chatbot.py --no-color
 
 Notes:
-- Stays fully local. No dependencies. Index is in memory.
-- Chunking is paragraph‑aware, ~600 chars per chunk.
+- Fully local. No external deps.
+- Index is in memory. Chunking is paragraph-aware (~600 chars).
+- Memory is persisted via SQLite (FTS5 for fast /memsearch).
 """
 from __future__ import annotations
+import os
 import re
 import sys
 import json
 import time
 import math
 import random
+import sqlite3
 from datetime import datetime, date
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
+# ---------------- Paths ----------------
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 LOG_DIR = ROOT / "chat_logs"
 DOCS_DIR = ROOT / "docs"  # default folder for docs
-MEMORY_FILE = DATA_DIR / "facts.json"
+MEMORY_DB = DATA_DIR / "memory.db"
 TODO_FILE = DATA_DIR / "todos.json"
 
 for p in (DATA_DIR, LOG_DIR, DOCS_DIR):
     p.mkdir(parents=True, exist_ok=True)
-
-if not MEMORY_FILE.exists():
-    MEMORY_FILE.write_text(json.dumps({}, indent=2))
 if not TODO_FILE.exists():
     TODO_FILE.write_text(json.dumps([], indent=2))
 
 # ---------------- Utilities: storage, logging ----------------
-
 def _read_json(path: Path, default):
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -57,14 +81,94 @@ def log_line(path: Path, who: str, text: str) -> None:
     with path.open("a", encoding="utf-8") as f:
         f.write(f"[{ts}] {who}: {text}\n")
 
+def normalize_key(k: str) -> str:
+    return re.sub(r"\s+", " ", k.strip().lower())
+
+def random_choice(items: List[str]) -> str:
+    random.seed()
+    return random.choice(items)
+
+# ---------------- Memory 2.0: SQLite + FTS5 ----------------
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS memories (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at REAL NOT NULL
+);
+CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+  key, value, content='memories', content_rowid='rowid'
+);
+CREATE TRIGGER IF NOT EXISTS memories_ai AFTER INSERT ON memories BEGIN
+  INSERT INTO memories_fts(rowid, key, value) VALUES (new.rowid, new.key, new.value);
+END;
+CREATE TRIGGER IF NOT EXISTS memories_ad AFTER DELETE ON memories BEGIN
+  INSERT INTO memories_fts(memories_fts, rowid, key, value) VALUES('delete', old.rowid, old.key, old.value);
+END;
+CREATE TRIGGER IF NOT EXISTS memories_au AFTER UPDATE ON memories BEGIN
+  INSERT INTO memories_fts(memories_fts, rowid, key, value) VALUES('delete', old.rowid, old.key, old.value);
+  INSERT INTO memories_fts(rowid, key, value) VALUES (new.rowid, new.key, new.value);
+END;
+"""
+
+class MemoryStore:
+    def __init__(self, db_path: Path = MEMORY_DB):
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.conn = sqlite3.connect(self.db_path)
+        self.conn.execute("PRAGMA journal_mode=WAL;")
+        self.conn.execute("PRAGMA foreign_keys=ON;")
+        self.conn.executescript(SCHEMA)
+        self.conn.commit()
+
+    def remember(self, key: str, value: str) -> None:
+        key = key.strip()
+        value = value.strip()
+        now = time.time()
+        self.conn.execute(
+            "INSERT INTO memories(key, value, updated_at) VALUES(?,?,?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
+            (key, value, now),
+        )
+        self.conn.commit()
+
+    def recall(self, key: str) -> Optional[str]:
+        cur = self.conn.execute("SELECT value FROM memories WHERE key=?", (key.strip(),))
+        row = cur.fetchone()
+        return row[0] if row else None
+
+    def search(self, query: str, limit: int = 20) -> List[Tuple[str, str]]:
+        query = query.strip()
+        if not query:
+            return []
+        cur = self.conn.execute(
+            "SELECT key, value FROM memories_fts WHERE memories_fts MATCH ? LIMIT ?",
+            (query, limit),
+        )
+        rows = cur.fetchall()
+        if rows:
+            return rows
+        # Fallback if FTS misses
+        cur = self.conn.execute(
+            "SELECT key, value FROM memories WHERE key LIKE ? OR value LIKE ? LIMIT ?",
+            (f"%{query}%", f"%{query}%", limit),
+        )
+        return cur.fetchall()
+
+    def forget(self, key: str) -> bool:
+        cur = self.conn.execute("DELETE FROM memories WHERE key=?", (key.strip(),))
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def keys(self, limit: int = 200) -> List[str]:
+        cur = self.conn.execute("SELECT key FROM memories ORDER BY updated_at DESC LIMIT ?", (limit,))
+        return [r[0] for r in cur.fetchall()]
+
 # ---------------- Q&A: tokenizer, chunking, vectors ----------
 WORD_RE = re.compile(r"[A-Za-z0-9_]+")
 ALLOWED_SUFFIX = {".txt", ".md", ".log"}
 
-
 def tokenize(text: str) -> List[str]:
     return [w.lower() for w in WORD_RE.findall(text)]
-
 
 def split_chunks(text: str, max_chars: int = 600) -> List[str]:
     paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
@@ -98,7 +202,6 @@ class TfidfIndex:
     def add_file(self, path: Path) -> int:
         text = path.read_text(encoding="utf-8", errors="ignore")
         chunks = split_chunks(text)
-        base = len(self.chunks)
         for i, c in enumerate(chunks):
             toks = tokenize(c)
             tf: Dict[str, float] = {}
@@ -130,7 +233,6 @@ class TfidfIndex:
 
     # ----- Vectorization -----
     def rebuild(self) -> None:
-        # compute IDF across chunks
         N = max(1, len(self.chunks))
         df: Dict[str, int] = {}
         for ch in self.chunks:
@@ -138,7 +240,6 @@ class TfidfIndex:
             for t in seen:
                 df[t] = df.get(t, 0) + 1
         self.idf = {t: math.log((1 + N) / (1 + df_t)) + 1.0 for t, df_t in df.items()}
-        # build vectors and norms
         for ch in self.chunks:
             vec: Dict[str, float] = {}
             for t, tf in ch["tf"].items():
@@ -155,12 +256,10 @@ class TfidfIndex:
         q_tokens = tokenize(text)
         if not q_tokens or not self.chunks:
             return []
-        # TF for query
         tf: Dict[str, float] = {}
         inv = 1.0 / len(q_tokens)
         for t in q_tokens:
             tf[t] = tf.get(t, 0.0) + inv
-        # Build query vector using index IDF
         qvec: Dict[str, float] = {}
         for t, tfv in tf.items():
             idf = self.idf.get(t)
@@ -169,14 +268,12 @@ class TfidfIndex:
         if not qvec:
             return []
         qnorm = math.sqrt(sum(v * v for v in qvec.values())) or 1.0
-        # Cosine against all chunks
         scored: List[Tuple[float, Dict[str, object]]] = []
         for ch in self.chunks:
             vec = ch["vec"]
             if not vec:
                 continue
             dot = 0.0
-            # iterate smaller map
             (small, large) = (qvec, vec) if len(qvec) <= len(vec) else (vec, qvec)
             for t, v in small.items():
                 if t in large:
@@ -190,10 +287,11 @@ class TfidfIndex:
 
 # ---------------- Bot ----------------
 class Bot:
-    def __init__(self, name: str = "Bobo"):
+    def __init__(self, name: str = "Bobo", top_k: int = 3, use_color: bool = True):
         self.name = name
-        self.facts: Dict[str, str] = _read_json(MEMORY_FILE, {})
-        self.todos: List[Dict[str, object]] = _read_json(TODO_FILE, [])
+        self.top_k = max(1, int(top_k))
+        self.use_color = bool(use_color)
+        self.mem = MemoryStore()  # SQLite-backed memory
         self.start_ts = time.time()
         self.jokes = [
             "Why do programmers prefer dark mode? Because light attracts bugs.",
@@ -202,24 +300,33 @@ class Bot:
         ]
         self.index = TfidfIndex()
         self.intents: List[Tuple[re.Pattern, Callable[[re.Match, str], str]]] = [
-            # Q&A first so 'ask what is ...' routes here
+            # Q&A
             (re.compile(r"^load\s+folder\s+(?P<folder>.+)$", re.I), self._intent_load_folder),
             (re.compile(r"^load\s+(?P<file>.+)$", re.I), self._intent_load_file),
             (re.compile(r"^ask\s+(?P<q>.+)$", re.I), self._intent_ask),
             (re.compile(r"^(?:list|show)\s+docs$", re.I), self._intent_doc_list),
             (re.compile(r"^clear\s+docs$", re.I), self._intent_doc_clear),
 
-            # Core features
-	    (re.compile(r"^remember (?:that )?(?P<k>[\w\s-]{1,60})\s+(?:is|=)\s+(?P<v>.+)$", re.I), self._intent_remember),
+            # Memory (natural & slash)
+            (re.compile(r"^remember (?:that )?(?P<k>[\w\s-]{1,60})\s*(?:is|=|:)\s*(?P<v>.+)$", re.I), self._intent_remember),
             (re.compile(r"^(?:what is|what's)\s+(?P<k>[\w\s-]{1,60})\??$", re.I), self._intent_recall),
+            (re.compile(r"^/remember\s+(?P<k>[\w\s-]{1,60})\s*(?:=|:)\s*(?P<v>.+)$", re.I), self._intent_remember),
+            (re.compile(r"^/recall\s+(?P<k>[\w\s-]{1,60})$", re.I), self._intent_recall),
+
+            # Memory utilities
+            (re.compile(r"^/memkeys$", re.I), self._intent_memkeys),
+            (re.compile(r"^/memsearch\s+(?P<q>.+)$", re.I), self._intent_memsearch),
+            (re.compile(r"^/forget\s+(?P<k>[\w\s-]{1,60})$", re.I), self._intent_forget),
+
+            # To-dos
             (re.compile(r"^(?:add|todo)\s+(?P<item>.+)$", re.I), self._intent_todo_add),
             (re.compile(r"^(?:list|show)\s+(?:todos?|tasks?)$", re.I), self._intent_todo_list),
             (re.compile(r"^(?:done|complete)\s+(?P<idx>\d+)$", re.I), self._intent_todo_done),
             (re.compile(r"^clear\s+(?:todos?|tasks?)$", re.I), self._intent_todo_clear),
 
             # Small talk & utilities
-            (re.compile(r"^(?:hi|hello|hey)(?:\\b.*)?$", re.I), self._intent_greet),
-            (re.compile(r"^(?:thanks|thank you).*", re.I), self._intent_thanks),
+            (re.compile(r"^(?:hi|hello|hey)\b.*$", re.I), self._intent_greet),
+            (re.compile(r"^(?:thanks|thank you).*$", re.I), self._intent_thanks),
             (re.compile(r"^(?:bye|exit|quit)$", re.I), self._intent_bye),
             (re.compile(r"^(?:time|what time is it)\??$", re.I), self._intent_time),
             (re.compile(r"^(?:date|what(?:'s| is) the date)\??$", re.I), self._intent_date),
@@ -228,47 +335,112 @@ class Bot:
             (re.compile(r"^help$", re.I), self._intent_help),
         ]
 
+    # ----- Color helpers (no f-strings around escape codes in expressions) -----
+    def _ansi(self, code: str) -> str:
+        return code if self.use_color else ""
+
+    def _reset(self) -> str:
+        return self._ansi("\x1b[0m")
+
+    def _bold(self, s: str) -> str:
+        code = "\x1b[1m"
+        return self._ansi(code) + s + self._reset()
+
+    def _dim(self, s: str) -> str:
+        code = "\x1b[2m"
+        return self._ansi(code) + s + self._reset()
+
+    def _fg(self, code: int, s: str) -> str:
+        esc = "\x1b[" + str(code) + "m"
+        return self._ansi(esc) + s + self._reset()
+
+    def _score_style(self, score: float, rank: int) -> Callable[[str], str]:
+        """
+        Style by score thresholds:
+          - Top hit: bold green
+          - >= 0.45: green
+          - 0.25–0.45: yellow
+          - else: gray
+        """
+        if rank == 0:
+            return lambda s: self._bold(self._fg(32, s))
+        if score >= 0.45:
+            return lambda s: self._fg(32, s)
+        if score >= 0.25:
+            return lambda s: self._fg(33, s)
+        return lambda s: self._fg(90, s)
+
     # ----- Memory / todos -----
     def _intent_remember(self, m: re.Match, _: str) -> str:
         k = normalize_key(m.group("k"))
         v = m.group("v").strip()
-        self.facts[k] = v
-        _write_json(MEMORY_FILE, self.facts)
+        self.mem.remember(k, v)
         return f"Got it. I’ll remember {k!r} = {v!r}."
 
     def _intent_recall(self, m: re.Match, _: str) -> str:
         k = normalize_key(m.group("k"))
-        if k in self.facts:
-            return f"You told me {k!r} = {self.facts[k]!r}."
-        return f"I don't have anything saved for {k!r} yet."
+        v = self.mem.recall(k)
+        return (f"You told me {k!r} = {v!r}." if v is not None
+                else f"I don't have anything saved for {k!r} yet.")
 
+    def _intent_memkeys(self, *_args) -> str:
+        keys = self.mem.keys()
+        if not keys:
+            return "🧠 Memory is empty."
+        return "🧠 Keys (newest first):\n" + "\n".join(f"- {k}" for k in keys)
+
+    def _intent_memsearch(self, m: re.Match, _: str) -> str:
+        q = m.group("q").strip()
+        if not q:
+            return "Usage: /memsearch <text>"
+        hits = self.mem.search(q, limit=20)
+        if not hits:
+            return "🔍 No matching memories."
+        lines = [f"🔎 Matches ({len(hits)}):"]
+        for k, v in hits[:20]:
+            sv = str(v).replace("\n", " ")
+            if len(sv) > 140:
+                sv = sv[:137] + "..."
+            lines.append(f"- **{k}** = {sv}")
+        if len(hits) > 20:
+            lines.append(f"...and {len(hits)-20} more")
+        return "\n".join(lines)
+
+    def _intent_forget(self, m: re.Match, _: str) -> str:
+        k = normalize_key(m.group("k"))
+        ok = self.mem.forget(k)
+        return "🗑️ Forgotten." if ok else f"❓ Nothing saved for {k!r}."
+
+    # ----- To-dos -----
     def _intent_todo_add(self, m: re.Match, _: str) -> str:
         item = m.group("item").strip()
-        self.todos.append({"text": item, "done": False, "ts": time.time()})
-        _write_json(TODO_FILE, self.todos)
-        return f"Added to‑do #{len(self.todos)}: {item}"
+        todos = _read_json(TODO_FILE, [])
+        todos.append({"text": item, "done": False, "ts": time.time()})
+        _write_json(TODO_FILE, todos)
+        return f"Added to-do #{len(todos)}: {item}"
 
     def _intent_todo_list(self, *_args) -> str:
-        if not self.todos:
-            return "No to‑dos yet. Add one with: add <task>"
-        lines = ["To‑dos:"]
-        for i, t in enumerate(self.todos, 1):
+        todos = _read_json(TODO_FILE, [])
+        if not todos:
+            return "No to-dos yet. Add one with: add <task>"
+        lines = ["To-dos:"]
+        for i, t in enumerate(todos, 1):
             mark = "[x]" if t.get("done") else "[ ]"
             lines.append(f"  {i:>2}. {mark} {t['text']}")
         return "\n".join(lines)
 
     def _intent_todo_done(self, m: re.Match, _: str) -> str:
         idx = int(m.group("idx")) - 1
-        if 0 <= idx < len(self.todos):
-            self.todos[idx]["done"] = True
-            _write_json(TODO_FILE, self.todos)
-            return f"Marked to‑do #{idx+1} as done."
+        todos = _read_json(TODO_FILE, [])
+        if 0 <= idx < len(todos):
+            todos[idx]["done"] = True
+            _write_json(TODO_FILE, todos)
+            return f"Marked to-do #{idx+1} as done."
         return "Invalid index. Try: done 1"
 
     def _intent_todo_clear(self, *_args) -> str:
-        self.todos.clear()
-        _write_json(TODO_FILE, self.todos)
-        return "Cleared all to‑dos."
+        _write_json(TODO_FILE, [])
+        return "Cleared all to-dos."
 
     # ----- Q&A intents -----
     def _resolve_for_load(self, raw: str) -> Optional[Path]:
@@ -315,16 +487,21 @@ class Bot:
 
     def _intent_ask(self, m: re.Match, _: str) -> str:
         q = m.group("q").strip()
-        results = self.index.query(q, k=3)
+        results = self.index.query(q, k=self.top_k)
         if not results:
             return "No good matches found. Try rephrasing or loading more files."
+
         lines = [f"Top matches for: {q}"]
-        for score, ch in results:
+        for idx, (score, ch) in enumerate(results):
+            sty = self._score_style(score, idx)
             name = Path(ch["doc_path"]).name
             snippet = ch["text"].strip().replace("\n", " ")
             if len(snippet) > 240:
                 snippet = snippet[:237] + "..."
-            lines.append(f"- [{name}] ({score:.3f}) {snippet}")
+            head = sty(f"- [{name}] ({score:.3f})")
+            if score < 0.25:
+                snippet = self._dim(snippet)
+            lines.append(f"{head} {snippet}")
         return "\n".join(lines)
 
     # ----- Small talk & utils -----
@@ -356,19 +533,29 @@ class Bot:
             "  load folder <path>           – add all .txt/.md/.log in a folder\n"
             "  list docs                    – show loaded files\n"
             "  clear docs                   – remove all indexed files\n"
-            "  ask <question>               – search with TF‑IDF + cosine\n"
+            "  ask <question>               – search with TF-IDF + cosine\n"
             "\n"
             "  remember X is Y              – save a fact\n"
             "  what's X?                    – recall a fact\n"
-            "  add <task>                   – add a to‑do\n"
-            "  list todos                   – list to‑dos\n"
-            "  done <n>                     – mark to‑do done\n"
+            "  /remember X: Y               – slash alias to remember\n"
+            "  /recall X                    – slash alias to recall\n"
+            "  /memkeys                     – list saved memory keys\n"
+            "  /memsearch <text>            – search keys/values in memory\n"
+            "  /forget <key>                – delete a saved memory\n"
+            "\n"
+            "  add <task>                   – add a to-do\n"
+            "  list todos                   – list to-dos\n"
+            "  done <n>                     – mark to-do done\n"
             "  clear todos                  – remove all\n"
+            "\n"
             "  time | date                  – local time/date\n"
             "  echo <text>                  – repeat back\n"
             "  joke                         – random joke\n"
             "  help                         – this menu\n"
-            "  bye/exit/quit                – save & exit"
+            "  bye/exit/quit                – save & exit\n"
+            "\n"
+            "  (Tip) Run with: python chatbot.py --top-k 5\n"
+            "  (Tip) Use --no-color if your terminal shows escape codes\n"
         )
 
     def respond(self, message: str) -> str:
@@ -387,16 +574,27 @@ class Bot:
         return "Not sure. Try 'help'."
 
 # ---------------- Entry point ----------------
-
-def random_choice(items: List[str]) -> str:
-    random.seed()
-    return random.choice(items)
-
-def normalize_key(k: str) -> str:
-    return re.sub(r"\s+", " ", k.strip().lower())
-
 def main(argv: List[str]):
-    bot = Bot(name="Bobo")
+    # crude flag parse (no deps)
+    top_k = 3
+    use_color = True
+
+    if "--top-k" in argv:
+        try:
+            i = argv.index("--top-k")
+            top_k = int(argv[i + 1])
+        except Exception:
+            pass
+
+    if "--no-color" in argv:
+        use_color = False
+    else:
+        # Windows heuristics: default True (Windows Terminal/VSCode support ANSI).
+        # If escape codes appear, run with --no-color.
+        if os.name == "nt":
+            pass
+
+    bot = Bot(name="Bobo", top_k=top_k, use_color=use_color)
     print(f"{bot.name} ready. Type 'help' to begin. Ctrl+C to quit.")
     today_log = LOG_DIR / f"{date.today().isoformat()}.txt"
     try:

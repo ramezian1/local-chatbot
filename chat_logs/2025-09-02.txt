@@ -1,0 +1,139 @@
+[00:42:09] you: hello
+[00:42:09] bobo: Hey! What's up?
+[00:42:13] you: not muich you?
+[00:42:13] bobo: Not sure. Try 'help'.
+[00:42:18] you: remember my name is Robert
+[00:42:18] bobo: Got it. I’ll remember 'my name' = 'Robert'.
+[00:42:23] you: whats my name?
+[00:42:23] bobo: Not sure. Try 'help'.
+[00:42:27] you: what is my name?
+[00:42:27] bobo: You told me 'my name' = 'Robert'.
+[22:59:44] you: remember my name is Bobby
+[22:59:44] bobo: Got it. I’ll remember 'my name' = 'Bobby'.
+[22:59:50] you: /recall my name
+[22:59:50] bobo: You told me 'my name' = 'Bobby'.
+[22:59:57] you: /memsearch Bobby
+[22:59:57] bobo: 🔎 Matches (1):
+- **my name** = Bobby
+[23:00:03] you: /memkeys
+[23:00:03] bobo: 🧠 Keys (newest first):
+- my name
+[23:00:11] you: /forget my name
+[23:00:11] bobo: 🗑️ Forgotten.
+[23:00:17] you: /recall my name
+[23:00:17] bobo: I don't have anything saved for 'my name' yet.
+[23:06:01] you: hi
+[23:06:01] bobo: Hello! Hit 'help' to see commands.
+[23:06:03] you: help
+[23:06:03] bobo: Commands:
+  load <file>                  – add a .txt/.md/.log (./, script dir, or ./docs)
+  load folder <path>           – add all .txt/.md/.log in a folder
+  list docs                    – show loaded files
+  clear docs                   – remove all indexed files
+  ask <question>               – search with TF-IDF + cosine
+
+  remember X is Y              – save a fact
+  what's X?                    – recall a fact
+  /remember X: Y               – slash alias to remember
+  /recall X                    – slash alias to recall
+  /memkeys                     – list saved memory keys
+  /memsearch <text>            – search keys/values in memory
+  /forget <key>                – delete a saved memory
+
+  add <task>                   – add a to-do
+  list todos                   – list to-dos
+  done <n>                     – mark to-do done
+  clear todos                  – remove all
+
+  time | date                  – local time/date
+  echo <text>                  – repeat back
+  joke                         – random joke
+  help                         – this menu
+  bye/exit/quit                – save & exit
+
+  (Tip) Run with: python chatbot.py --top-k 5
+  (Tip) Use --no-color if your terminal shows escape codes
+
+[23:06:09] you: remember my name is bobby
+[23:06:09] bobo: Got it. I’ll remember 'my name' = 'bobby'.
+[23:06:11] you: /mem
+[23:06:11] bobo: Not sure. Try 'help'.
+[23:06:17] you: /remember
+[23:06:17] bobo: Not sure. Try 'help'.
+[23:06:20] you: help
+[23:06:20] bobo: Commands:
+  load <file>                  – add a .txt/.md/.log (./, script dir, or ./docs)
+  load folder <path>           – add all .txt/.md/.log in a folder
+  list docs                    – show loaded files
+  clear docs                   – remove all indexed files
+  ask <question>               – search with TF-IDF + cosine
+
+  remember X is Y              – save a fact
+  what's X?                    – recall a fact
+  /remember X: Y               – slash alias to remember
+  /recall X                    – slash alias to recall
+  /memkeys                     – list saved memory keys
+  /memsearch <text>            – search keys/values in memory
+  /forget <key>                – delete a saved memory
+
+  add <task>                   – add a to-do
+  list todos                   – list to-dos
+  done <n>                     – mark to-do done
+  clear todos                  – remove all
+
+  time | date                  – local time/date
+  echo <text>                  – repeat back
+  joke                         – random joke
+  help                         – this menu
+  bye/exit/quit                – save & exit
+
+  (Tip) Run with: python chatbot.py --top-k 5
+  (Tip) Use --no-color if your terminal shows escape codes
+
+[23:06:30] you: /memsearch
+[23:06:30] bobo: Not sure. Try 'help'.
+[23:06:35] you: /memkeys
+[23:06:35] bobo: 🧠 Keys (newest first):
+- my name
+[23:06:38] you: what is my name
+[23:06:38] bobo: You told me 'my name' = 'bobby'.
+[23:06:41] you: /forget
+[23:06:41] bobo: Not sure. Try 'help'.
+[23:06:47] you: /forget name
+[23:06:47] bobo: ❓ Nothing saved for 'name'.
+[23:06:51] you: /forget my name
+[23:06:51] bobo: 🗑️ Forgotten.
+[23:20:45] you: help
+[23:20:45] bobo: Commands:
+  load <file>                  – add a .txt/.md/.log (./, script dir, or ./docs)
+  load folder <path>           – add all .txt/.md/.log in a folder
+  list docs                    – show loaded files
+  clear docs                   – remove all indexed files
+  ask <question>               – search with TF-IDF + cosine
+
+  remember X is Y              – save a fact
+  what's X?                    – recall a fact
+  /remember X: Y               – slash alias to remember
+  /recall X                    – slash alias to recall
+  /memkeys                     – list saved memory keys
+  /memsearch <text>            – search keys/values in memory
+  /forget <key>                – delete a saved memory
+
+  add <task>                   – add a to-do
+  list todos                   – list to-dos
+  done <n>                     – mark to-do done
+  clear todos                  – remove all
+
+  time | date                  – local time/date
+  echo <text>                  – repeat back
+  joke                         – random joke
+  help                         – this menu
+  bye/exit/quit                – save & exit
+
+  (Tip) Run with: python chatbot.py --top-k 5
+  (Tip) Use --no-color if your terminal shows escape codes
+
+[23:20:47] you: time
+[23:20:47] bobo: 11:20 PM
+[23:20:49] you: date
+[23:20:49] bobo: Tuesday, September 02, 2025

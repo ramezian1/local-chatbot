@@ -1,89 +1,86 @@
-# Local Chatbot with Multi‑File Q&A (TF‑IDF)
+# Local Chatbot (Bobo)
 
-This is a simple, local Python chatbot that can remember facts, manage to‑dos, tell jokes, and most importantly, **load multiple local text files and answer questions** from them using TF‑IDF + cosine similarity search.
+A fully local chatbot created by **Robert Mezian** that supports **multi-file Q&A** with TF-IDF search, persistent personal memory (SQLite + FTS5), task tracking, and colorful console output.  
+No internet or external dependencies required. Everything runs locally.
+
+---
 
 ## ✨ Features
 
-- **Chatbot basics**:
-  - Remember facts: `remember my name is Bobby`
-  - Recall facts: `what is my name?`
-  - To‑dos: `add buy milk`, `list todos`, `done 1`, `clear todos`
-  - Jokes, time, date, echo, polite small talk
+### Document Q&A
+- `load <file>` – load `.txt`, `.md`, `.log` (searches CWD, script folder, or `./docs`)
+- `load folder <path>` – index all `.txt/.md/.log` in a folder
+- `ask <question>` – cosine similarity over TF-IDF vectors
+- `list docs` – list loaded files
+- `clear docs` – clear all indexed docs
+- **Colored output:** results styled by relevance (green = strong, yellow = medium, gray = weak).  
+  Disable with `--no-color`.
 
-- **Q&A over local files**:
-  - Load one file: `load <file>` (looks in current folder, script folder, then `./docs`)
-  - Load a folder: `load folder <path>` (indexes all `.txt`, `.md`, `.log`)
-  - List docs: `list docs`
-  - Clear docs: `clear docs`
-  - Ask questions: `ask <your question>` → returns top 3 relevant chunks with cosine scores
+### Persistent Personal Memory (SQLite)
+- `remember X is Y` – save facts locally
+- `what is X?` – recall saved facts
+- `/remember X: Y` – slash alias to save
+- `/recall X` – slash alias to recall
+- `/memkeys` – list all stored keys
+- `/memsearch <text>` – fuzzy search facts with FTS5
+- `/forget <key>` – delete a saved memory
 
-- **Docs folder**: Put files into the `docs/` directory and load them easily.
+### To-Do Manager
+- `add <task>` – add to-do  
+- `list todos` – view tasks  
+- `done <n>` – mark done  
+- `clear todos` – reset list  
 
-- **Logs & memory**:
-  - Conversations saved in `./chat_logs`
-  - Facts and todos persisted in `./data`
+### Utilities
+- `time` / `date` – local time & date  
+- `echo <text>` – repeat input  
+- `joke` – random programming joke  
+- `help` – show all commands  
 
-All data stays fully local — no internet or external services required.
+---
 
-## 🚀 Usage
+## 🚀 Example Usage
 
-### 1. Create a virtual environment
 ```bash
-python -m venv venv
-venv\Scripts\activate   # Windows
-# or
-source venv/bin/activate # macOS/Linux
+$ python chatbot.py --top-k 5
+Bobo ready. Type 'help' to begin. Ctrl+C to quit.
+
+> remember my name is Bobby
+Got it. I’ll remember 'my name' = 'Bobby'.
+
+> /memkeys
+🧠 Keys (newest first):
+- my name
+
+> ask what is tf-idf?
+Top matches for: what is tf-idf
+- [notes.txt] (0.882) TF-IDF is a numerical statistic that reflects how important a word is...
 ```
 
-### 2. Run the chatbot
-```bash
-python chatbot.py
-```
-
-### 3. Example session
-```
-> remember favorite drummer is Danny Carey
-Got it. I’ll remember 'favorite drummer' = 'Danny Carey'.
-
-> load folder docs
-Indexed 4 files, 12 chunks. Ask with: ask <question>
-
-> ask what is linux
-Top matches for: what is linux
-- [linux.txt] (0.921) Linux is a family of open-source operating systems based on the Linux kernel.
-
-> list docs
-Docs:
-   1. python.txt       (2 chunks)
-   2. javascript.txt   (2 chunks)
-   3. linux.txt        (2 chunks)
-   4. networking.txt   (3 chunks)
-```
-
-### 4. Exit
-Type `bye`, `exit`, or `quit`.
+---
 
 ## 📂 Project Structure
+
 ```
-chatbot.py       # main program
-data/            # stores facts and todos
-chat_logs/       # daily logs of chats
-docs/            # place your text files here
-venv/            # virtual environment (optional)
-README.md        # this file
+chatbot.py        # main script
+memory.py         # SQLite memory store
+docs/             # default document folder
+data/             # persistent memory (memory.db, todos.json)
+chat_logs/        # daily chat transcripts
 ```
+
+---
 
 ## 🛠 Requirements
 - Python 3.8+
-- No external libraries (pure standard library)
+- Pure standard library (no external pip installs)
 
-## 🔮 Future ideas
-- Highlight matched words in answers
-- Short synthesized answers above snippets
-- Packaged `.exe` for Windows or `.app` for macOS
-- Mini Tkinter GUI
+---
+
+## Author
+Developed by **Robert Mezian**
+
+---
 
 ## 📜 License
 See [LICENSE.md](LICENSE.md) for details.
----
-Made by Robert Mezian for local tinkering and learning.

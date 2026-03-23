@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Chatbot - Live Demo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 Local Chatbot (Bobo)</h1>
+            <p>TF-IDF Q&A • SQLite Memory • No External APIs</p>
+        </header>
+        <div class="chat-container" id="chatContainer">
+            <div class="message bot-message">
+                <strong>Bobo:</strong> Hey! Type 'help' to see commands or just chat with me. 🙂
+            </div>
+        </div>
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="Type a message... (try 'help', 'joke', 'time')" autofocus>
+            <button id="sendBtn">Send</button>
+        </div>
+        <div class="examples">
+            <strong>Try:</strong>
+            <button class="example-btn" data-text="help">help</button>
+            <button class="example-btn" data-text="joke">joke</button>
+            <button class="example-btn" data-text="time">time</button>
+            <button class="example-btn" data-text="remember Python is awesome">remember Python is awesome</button>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

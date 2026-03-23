@@ -1,6 +1,7 @@
 # Web interface
 flask>=3.0.0
 gunicorn>=21.2.0
+Flask-CORS>=4.0.0
 
 # All other features use Python stdlib only:
 # sqlite3, math, re, json, pathlib, datetime — no extra installs needed

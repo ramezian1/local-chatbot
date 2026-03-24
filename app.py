@@ -1,43 +1,50 @@
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
 import os
+
+from flask import Flask, jsonify, render_template, request
+from flask_cors import CORS
+
 from chatbot import Bot
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 CORS(app)
 
-# Lazy loading: bot is initialized on first use
-bot_instance = None
+bot = Bot(name="Bobo", top_k=3, min_score=0.05, use_color=False)
 
-def get_bot():
-    global bot_instance
-    if bot_instance is None:
-        bot_instance = Bot(name="Robo", top_k=3, min_score=0.05, use_color=False)
-    return bot_instance
 
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/api/chat', methods=['POST'])
+
+@app.route("/api/chat", methods=["POST"])
 def chat():
     try:
-        data = request.get_json()
-        message = data.get('message', '').strip()
+        data = request.get_json(silent=True) or {}
+        message = str(data.get("message", "")).strip()
+        history = data.get("history", [])
         if not message:
-            return jsonify({'error': 'Empty message'}), 400
-        
-        bot = get_bot()
-        response = bot.respond(message)
-        return jsonify({'response': response, 'status': 'success'})
+            return jsonify({"error": "Empty message"}), 400
+        if not isinstance(history, list):
+            history = []
+        response = bot.respond(message, history=history)
+        return jsonify({"response": response, "status": "success"})
     except Exception as e:
-        return jsonify({'error': str(e), 'status': 'error'}), 500
+        return jsonify({"error": str(e), "status": "error"}), 500
 
-@app.route('/api/health', methods=['GET'])
+
+@app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({'status': 'healthy', 'bot_name': 'Robo'})
+    return jsonify(
+        {
+            "status": "healthy",
+            "bot_name": bot.name,
+            "llm_enabled": bot.is_llm_enabled(),
+            "llm_model": bot.llm.model if bot.is_llm_enabled() else None,
+        }
+    )
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
